@@ -1,0 +1,21 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# next.js build output
+/.next/
+/out/
+/dist/
+
+# mastra/ai sdk cache/logs
+/mastra/
+*.log
+
+# environment files
+# .env
+# .env.local
+# .env.development.local
+# .env.test.local
+# .env.production.local
+.env*

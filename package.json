@@ -1,0 +1,35 @@
+{
+  "name": "daily-wisdom",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@ai-sdk/amazon-bedrock": "^3.0.57",
+    "@mastra/core": "^0.15.2",
+    "@mastra/libsql": "^0.13.7",
+    "@mastra/loggers": "^0.10.9",
+    "@mastra/memory": "^0.14.2",
+    "ai": "^5.0.100",
+    "mastra": "^0.11.3",
+    "next": "16.0.3",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20.19.25",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.3",
+    "tailwindcss": "^4",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
