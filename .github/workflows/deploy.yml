@@ -1,0 +1,71 @@
+name: Deploy to Cloud Run via Terraform
+
+on:
+  push:
+    branches:
+      - develop # developブランチにプッシュされたら実行
+
+env:
+  PROJECT_ID: gcp-learning-lab-476308 # GitHub Variablesで定義
+  REGION: asia-northeast1
+  SERVICE_NAME: daily-wisdom-app
+  REPO_NAME: daily-wisdom
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write' # OIDCトークン認証に必要
+
+    steps:
+      # 1. コードのチェックアウト
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. GCP認証 (WIF)
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          # terraform/outputs.tf で出力された WIF Provider のリソース名を指定
+          workload_identity_provider: projects/644206843311/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider
+          # terraform/outputs.tf で出力された GitHub Actions用SAのメールアドレスを指定
+          service_account: github-actions-deployer@gcp-learning-lab-476308.iam.gserviceaccount.com
+
+      # 3. Docker Build, Tag, and Push
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Docker Login to Artifact Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGION }}-docker.pkg.dev
+          username: _json_key
+          password: ${{ steps.auth.outputs.access_token }}
+          
+      - name: Build and push Docker image
+        id: build-image
+        run: |
+          IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
+          docker build -t $IMAGE_TAG .
+          docker push $IMAGE_TAG
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      # 4. Terraform Setup
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0 # 使用しているバージョンに合わせる
+
+      # 5. Terraform デプロイ (Cloud Runのイメージを更新)
+      - name: Terraform Init and Apply
+        working-directory: ./terraform
+        run: |
+          terraform init
+          # Cloud Runサービスのイメージを新しいタグで更新するために、-varで新しいイメージを渡します。
+          # ※ cloud_run.tf に新しい変数 (new_image_tag) の定義と使用が必要です (後述)
+          terraform apply -auto-approve \
+            -var="project_id=${{ env.PROJECT_ID }}" \
+            -var="github_repo=${{ github.repository }}"
+            #-var="new_image_tag=${{ steps.build-image.outputs.IMAGE_TAG }}" # こちらはオプション。現状のcloud_run.tfでは不要なため削除。
