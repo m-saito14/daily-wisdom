@@ -10,7 +10,6 @@ cd terraform
 terraform init
 # 実行プランの確認 (リポジトリ名は 正確に入力してください)
 terraform plan -var="project_id=[YOUR_PROJECT_ID]" -var="github_repo=[YourName/RepoName]"
-terraform plan -var="project_id=[gcp-learning-lab-476308]" -var="github_repo=[m-saito14/daily-wisdom]"
+
 # 適用
-terraform apply -var="project_id=[YOUR_PROJECT_ID]" -var="github_repo=[YourName/RepoName]"
 terraform apply -var="project_id=[YOUR_PROJECT_ID]" -var="github_repo=[YourName/RepoName]"
