@@ -48,30 +48,41 @@ resource "google_iam_workload_identity_pool" "github_pool" {
   display_name              = "GitHub Actions Pool"
 }
 
-# プロバイダーの作成 (ここがエラーの原因だった箇所)
+# プロバイダーの作成
 resource "google_iam_workload_identity_pool_provider" "github_provider" {
   workload_identity_pool_id          = google_iam_workload_identity_pool.github_pool.workload_identity_pool_id
   workload_identity_pool_provider_id = "github-provider"
   display_name                       = "GitHub Actions Provider"
   
-  # 最もシンプルなマッピング設定
+  # GitHubの情報をGCPの属性にマッピング
   attribute_mapping = {
     "google.subject"       = "assertion.sub"
     "attribute.repository" = "assertion.repository"
+    # assertion.ref は下の attribute_condition で直接使うのでマッピング必須ではないが、
+    # 将来的にログ等で確認できるようマッピングしておくと便利
+    "attribute.git_ref"    = "assertion.ref"
   }
+
+  # ここでセキュリティチェックを行う（門番の役割）
+  # GitHubからの生のデータ (assertion) を使って判定。
+  # 指定のリポジトリ かつ 指定のブランチ(main or develop) のみ通過させる。
+  attribute_condition = <<EOF
+    assertion.repository == "m-saito14/daily-wisdom" && 
+    (assertion.ref == "refs/heads/main" || assertion.ref == "refs/heads/develop")
+  EOF
 
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"
   }
-
-  attribute_condition = "assertion.repository == \"OWNER/REPO\""
 }
 
-# バインディング: 特定のGitHubリポジトリからのアクセスのみ許可
+# バインディング
+# プロバイダー(門番)を通過できたアクセスに対して権限を付与
 resource "google_service_account_iam_member" "wif_binding" {
   service_account_id = google_service_account.github_actions_sa.name
   role               = "roles/iam.workloadIdentityUser"
   
-  # "attribute.repository" を使ってリポジトリを制限します
-  member = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_pool.name}/attribute.repository/${var.github_repo}"
+  # プロバイダー側で厳密に絞っているため、ここでは「このプールからのアクセスは許可」とするだけで安全。
+  # これにより、複雑な condition 式によるエラーを回避できる。
+  member = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_pool.name}/*"
 }
