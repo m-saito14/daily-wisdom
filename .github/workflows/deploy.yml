@@ -28,29 +28,23 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          # terraform/outputs.tf で出力された WIF Provider のリソース名を指定
           workload_identity_provider: projects/644206843311/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider
-          # terraform/outputs.tf で出力された GitHub Actions用SAのメールアドレスを指定
           service_account: github-actions-deployer@gcp-learning-lab-476308.iam.gserviceaccount.com
+          # ★追加: これがないと次のステップで使うトークンが生成されません
+          token_format: 'access_token'
 
       # 3. Docker Build, Tag, and Push
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         
+      # WIF用の設定に変更
       - name: Docker Login to Artifact Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGION }}-docker.pkg.dev
-          username: _json_key
+          # JSONキーではなく、OAuthトークンとしてログイン
+          username: 'oauth2accesstoken'
           password: ${{ steps.auth.outputs.access_token }}
-          
-      - name: Build and push Docker image
-        id: build-image
-        run: |
-          IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
-          docker build -t $IMAGE_TAG .
-          docker push $IMAGE_TAG
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       # 4. Terraform Setup
       - name: Setup Terraform
