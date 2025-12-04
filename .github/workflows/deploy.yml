@@ -67,3 +67,14 @@ jobs:
             -var="project_id=${{ env.PROJECT_ID }}" \
             -var="github_repo=${{ github.repository }}"
             #-var="new_image_tag=${{ steps.build-image.outputs.IMAGE_TAG }}" # こちらはオプション。現状のcloud_run.tfでは不要なため削除。
+      
+      - name: Build and push Docker image
+        id: build-image
+        run: |
+          # 2つのタグを用意: コミットハッシュ用 と latest用
+          IMAGE_ID="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}"
+          docker build -t $IMAGE_ID:${{ github.sha }} -t $IMAGE_ID:latest .
+          
+          # 両方をプッシュ
+          docker push $IMAGE_ID:${{ github.sha }}
+          docker push $IMAGE_ID:latest
