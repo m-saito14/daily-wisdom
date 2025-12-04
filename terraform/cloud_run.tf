@@ -8,7 +8,6 @@ resource "google_cloud_run_v2_service" "daily_wisdom_app" {
     service_account = "github-actions-deployer@gcp-learning-lab-476308.iam.gserviceaccount.com"
     
     containers {
-      # ★重要: ここでは "latest" タグを参照するようにします
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.app_repo.repository_id}/daily-wisdom:latest"
       
       ports {
@@ -16,24 +15,26 @@ resource "google_cloud_run_v2_service" "daily_wisdom_app" {
       }
       
       # 環境変数 (Next.js/Cloud Run用)
-      envs {
+      env {
         name  = "PORT"
         value = "8080"
       }
       
       # Secret Manager から値を注入
-      secrets {
-        secret        = google_secret_manager_secret.aws_access_key.secret_id
+      secret {
+        secret_name   = google_secret_manager_secret.aws_access_key.secret_id
         container_key = "AWS_ACCESS_KEY_ID"
         version       = "latest"
       }
-      secrets {
-        secret        = google_secret_manager_secret.aws_secret_key.secret_id
+      
+      secret {
+        secret_name   = google_secret_manager_secret.aws_secret_key.secret_id
         container_key = "AWS_SECRET_ACCESS_KEY"
         version       = "latest"
       }
-      secrets {
-        secret        = google_secret_manager_secret.aws_region.secret_id
+      
+      secret {
+        secret_name   = google_secret_manager_secret.aws_region.secret_id
         container_key = "AWS_REGION"
         version       = "latest"
       }
@@ -41,10 +42,12 @@ resource "google_cloud_run_v2_service" "daily_wisdom_app" {
       resources {
         cpu_idle          = true
         startup_cpu_boost = true
-        timeout_seconds   = 300
         memory            = "512Mi"
       }
     }
+    
+    timeout = "300s"
+
   }
 
   traffic {
