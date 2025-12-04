@@ -5,7 +5,7 @@ resource "google_cloud_run_v2_service" "daily_wisdom_app" {
 
   template {
     # 作成した実行用サービスアカウントを指定
-    service_account = github-actions-deployer@gcp-learning-lab-476308.iam.gserviceaccount.com
+    service_account = "github-actions-deployer@gcp-learning-lab-476308.iam.gserviceaccount.com"
     
     containers {
       # ★重要: ここでは "latest" タグを参照するようにします
