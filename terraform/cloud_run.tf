@@ -1,8 +1,8 @@
 resource "google_cloud_run_v2_service" "daily_wisdom_app" {
   name     = "daily-wisdom-app"
   location = var.region
-  deletion_protection = false
   ingress  = "INGRESS_TRAFFIC_ALL" # 外部公開設定
+  deletion_protection = false
 
   template {
     # 作成した実行用サービスアカウントを指定
