@@ -6,48 +6,62 @@ resource "google_cloud_run_v2_service" "daily_wisdom_app" {
   template {
     # 作成した実行用サービスアカウントを指定
     service_account = "github-actions-deployer@gcp-learning-lab-476308.iam.gserviceaccount.com"
-    
-    containers {
+
+    container {
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.app_repo.repository_id}/daily-wisdom:latest"
-      
+
       ports {
         container_port = 8080
       }
-      
-      # 環境変数 (Next.js/Cloud Run用)
+
+      # PORT
       env {
         name  = "PORT"
         value = "8080"
       }
-      
-      # Secret Manager から値を注入
-      secret {
-        secret_name   = google_secret_manager_secret.aws_access_key.secret_id
-        container_key = "AWS_ACCESS_KEY_ID"
-        version       = "latest"
+
+      # Secret: AWS_ACCESS_KEY_ID
+      env {
+        name = "AWS_ACCESS_KEY_ID"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.aws_access_key.secret_id
+            version = "latest"
+          }
+        }
       }
-      
-      secret {
-        secret_name   = google_secret_manager_secret.aws_secret_key.secret_id
-        container_key = "AWS_SECRET_ACCESS_KEY"
-        version       = "latest"
+
+      # Secret: AWS_SECRET_ACCESS_KEY
+      env {
+        name = "AWS_SECRET_ACCESS_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.aws_secret_key.secret_id
+            version = "latest"
+          }
+        }
       }
-      
-      secret {
-        secret_name   = google_secret_manager_secret.aws_region.secret_id
-        container_key = "AWS_REGION"
-        version       = "latest"
+
+      # Secret: AWS_REGION
+      env {
+        name = "AWS_REGION"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.aws_region.secret_id
+            version = "latest"
+          }
+        }
       }
 
       resources {
-        cpu_idle          = true
-        startup_cpu_boost = true
-        memory            = "512Mi"
+        limits = {
+          memory = "512Mi"
+          cpu    = "1"
+        }
       }
     }
-    
-    timeout = "300s"
 
+    timeout = "300s"
   }
 
   traffic {
