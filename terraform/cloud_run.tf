@@ -7,7 +7,7 @@ resource "google_cloud_run_v2_service" "daily_wisdom_app" {
     # 作成した実行用サービスアカウントを指定
     service_account = "github-actions-deployer@gcp-learning-lab-476308.iam.gserviceaccount.com"
 
-    container {
+    containers {
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.app_repo.repository_id}/daily-wisdom:latest"
 
       ports {
