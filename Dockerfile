@@ -1,3 +1,4 @@
+# ビルドステージ: アプリケーションをビルド
 # ベースイメージとしてNode.jsの軽量バージョンを使用
 FROM node:20-slim
 
@@ -16,3 +17,22 @@ EXPOSE 8080
 
 # コンテナ起動時に実行されるコマンドを設定
 CMD ["npm", "start"]
+
+
+# 実行ステージ: 軽量な実行環境を作成
+FROM node:20-slim AS runner
+WORKDIR /app
+
+# 環境変数はランタイムで注入されるため、ここでは設定しません
+
+# ビルドステージから必要なファイルをコピー
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+
+# ★追加: これがないとCloud Runからアクセスできません
+ENV HOSTNAME="0.0.0.0"
+ENV PORT=8080
+
+# 実行コマンド
+CMD ["node", "server.js"]
