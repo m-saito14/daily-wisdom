@@ -19,11 +19,11 @@ jobs:
       id-token: 'write' # OIDCトークン認証に必要
 
     steps:
-      # 1. コードのチェックアウト
+      # コードのチェックアウト
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. GCP認証 (WIF)
+      # GCP認証 (WIF)
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v2
@@ -37,7 +37,7 @@ jobs:
           # 次のステップで使うトークン生成に必要
           token_format: 'access_token'
 
-      # 3. Docker Build, Tag, and Push
+      # Docker Build, Tag, and Push
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         
@@ -50,23 +50,11 @@ jobs:
           username: 'oauth2accesstoken'
           password: ${{ steps.auth.outputs.access_token }}
 
-      # 4. Terraform Setup
+      # Terraform Setup
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.0 # 使用しているバージョンに合わせる
-
-      # 5. Terraform デプロイ (Cloud Runのイメージを更新)
-      - name: Terraform Init and Apply
-        working-directory: ./terraform
-        run: |
-          terraform init
-          # Cloud Runサービスのイメージを新しいタグで更新するために、-varで新しいイメージを渡します。
-          # ※ cloud_run.tf に新しい変数 (new_image_tag) の定義と使用が必要です (後述)
-          terraform apply -auto-approve \
-            -var="project_id=${{ env.PROJECT_ID }}" \
-            -var="github_repo=${{ github.repository }}"
-            #-var="new_image_tag=${{ steps.build-image.outputs.IMAGE_TAG }}" # こちらはオプション。現状のcloud_run.tfでは不要なため削除。
       
       - name: Build and push Docker image
         id: build-image
@@ -78,3 +66,15 @@ jobs:
           # 両方をプッシュ
           docker push $IMAGE_ID:${{ github.sha }}
           docker push $IMAGE_ID:latest
+
+      # Terraform デプロイ (Cloud Runのイメージを更新)
+      - name: Terraform Init and Apply
+        working-directory: ./terraform
+        run: |
+          terraform init
+          # Cloud Runサービスのイメージを新しいタグで更新するために、-varで新しいイメージを渡します。
+          # ※ cloud_run.tf に新しい変数 (new_image_tag) の定義と使用が必要です (後述)
+          terraform apply -auto-approve \
+            -var="project_id=${{ env.PROJECT_ID }}" \
+            -var="github_repo=${{ github.repository }}"
+            #-var="new_image_tag=${{ steps.build-image.outputs.IMAGE_TAG }}" # こちらはオプション。現状のcloud_run.tfでは不要なため削除。
