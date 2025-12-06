@@ -49,12 +49,6 @@ jobs:
           # JSONキーではなく、OAuthトークンとしてログイン
           username: 'oauth2accesstoken'
           password: ${{ steps.auth.outputs.access_token }}
-
-      # Terraform Setup
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.0 # 使用しているバージョンに合わせる
       
       - name: Build and push Docker image
         id: build-image
@@ -66,6 +60,12 @@ jobs:
           # 両方をプッシュ
           docker push $IMAGE_ID:${{ github.sha }}
           docker push $IMAGE_ID:latest
+      
+      # Terraform Setup
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0 # 使用しているバージョンに合わせる
 
       # Terraform デプロイ (Cloud Runのイメージを更新)
       - name: Terraform Init and Apply
