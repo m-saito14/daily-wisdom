@@ -1,7 +1,6 @@
 # ビルドステージ: アプリケーションをビルド
 # ベースイメージとしてNode.jsの軽量バージョンを使用
-FROM node:20-slim
-
+FROM node:20-slim AS builder
 # アプリケーションの作業ディレクトリを設定
 WORKDIR /app
 
