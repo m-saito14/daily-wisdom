@@ -14,11 +14,11 @@ resource "google_cloud_run_v2_service" "daily_wisdom_app" {
         container_port = 8080
       }
 
-      # PORT
-      env {
-        name  = "PORT"
-        value = "8080"
-      }
+      # PORT は自動設定されるため削除
+      # env {
+      #   name  = "PORT"
+      #   value = "8080"
+      # }
 
       # Secret: AWS_ACCESS_KEY_ID
       env {
