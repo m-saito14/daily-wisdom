@@ -6,10 +6,13 @@ WORKDIR /app
 
 # 依存関係のファイルをコピーし、依存関係をインストール
 COPY package*.json ./
-RUN npm install --only=production
+RUN npm install
 
 # アプリケーションのソースコードをコピー
 COPY . .
+
+# Next.jsのビルドを実行
+RUN npm run build
 
 # コンテナがリッスンするポートを指定（Cloud Runは通常 8080 を使用）
 EXPOSE 8080
@@ -29,7 +32,6 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# ★追加: これがないとCloud Runからアクセスできません
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=8080
 
