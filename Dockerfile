@@ -12,6 +12,7 @@ RUN npm install
 COPY . .
 
 # Next.jsのビルドを実行
+RUN rm -rf .next
 RUN npm run build
 
 # コンテナがリッスンするポートを指定（Cloud Runは通常 8080 を使用）
