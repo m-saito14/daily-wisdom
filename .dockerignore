@@ -1,0 +1,8 @@
+# 依存関係はビルドステージでnpm installするため除外
+node_modules
+# macOS のファイル
+.DS_Store
+# logs
+*.log
+
+# .next ディレクトリはビルドステージ内で使うため、ここでは除外しない
