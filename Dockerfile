@@ -26,6 +26,8 @@ ENV PORT=8080
 
 # ビルドステージから必要なファイルをコピー
 COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
 # コンテナポートの公開（ドキュメント用）
 EXPOSE 8080
