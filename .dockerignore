@@ -5,4 +5,7 @@ node_modules
 # logs
 *.log
 
-# .next ディレクトリはビルドステージ内で使うため、ここでは除外しない
+# ローカルのビルド結果をコンテナに持ち込ませない
+.next
+out
+build
