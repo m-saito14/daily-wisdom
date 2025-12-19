@@ -12,7 +12,7 @@ RUN npm ci
 COPY . .
 
 # Next.jsのビルドを実行
-RUN rm -rf .next
+# RUN rm -rf .next
 RUN npm run build
 
 
@@ -24,10 +24,17 @@ ENV NODE_ENV=production
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=8080
 
-# ビルドステージから必要なファイルをコピー
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+# ユーザー作成
+RUN groupadd -g 1001 nodejs && useradd -u 1001 nextjs -g nodejs
+
+# ファイルの配置
+# server.js本体
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+# ブラウザが探している静的ファイル
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+USER nextjs
 
 # コンテナポートの公開（ドキュメント用）
 EXPOSE 8080
