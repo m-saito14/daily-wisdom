@@ -12,7 +12,7 @@ RUN npm ci
 COPY . .
 
 # Next.jsのビルドを実行
-# RUN rm -rf .next
+RUN rm -rf .next out .mastra
 RUN npm run build
 
 
