@@ -13,3 +13,8 @@ variable "github_repo" {
   description = "m-saito14/daily-wisdom"
   type        = string
 }
+
+variable "container_image" {
+  type        = string
+  description = "デプロイするコンテナイメージのフルパス（タグ付き）"
+}
