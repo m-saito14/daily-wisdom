@@ -55,15 +55,11 @@ jobs:
         run: |
           # 2つのタグを用意: コミットハッシュ用 と latest用
           IMAGE_ID="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}"
-          TAG="${{ github.sha }}"
-          docker build -t $IMAGE_ID:$TAG -t $IMAGE_ID:latest .
+          docker build -t $IMAGE_ID:${{ github.sha }} -t $IMAGE_ID:latest .
           
           # 両方をプッシュ
-          docker push $IMAGE_ID:$TAG
+          docker push $IMAGE_ID:${{ github.sha }}
           docker push $IMAGE_ID:latest
-
-          # Terraformで使うために、フルパスを環境変数に入れておく
-          echo "FULL_IMAGE_PATH=$IMAGE_ID:$TAG" >> $GITHUB_ENV
       
       # Terraform Setup
       - name: Setup Terraform
@@ -80,4 +76,5 @@ jobs:
           # ※ cloud_run.tf に新しい変数 (new_image_tag) の定義と使用が必要です (後述)
           terraform apply -auto-approve \
             -var="project_id=${{ env.PROJECT_ID }}" \
-            -var="container_image=${{ env.FULL_IMAGE_PATH }}"
+            -var="github_repo=${{ github.repository }}"
+            #-var="new_image_tag=${{ steps.build-image.outputs.IMAGE_TAG }}" # こちらはオプション。現状のcloud_run.tfでは不要なため削除。
