@@ -44,6 +44,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # ★これを追加（deploy.ymlからコピー）
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/644206843311/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider
+          service_account: github-actions-deployer@gcp-learning-lab-476308.iam.gserviceaccount.com
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
