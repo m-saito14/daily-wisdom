@@ -40,6 +40,11 @@ jobs:
   
   terraform-check:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: 'read'
+      id-token: 'write' # Google Cloudとの認証(WIF)に必須
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
