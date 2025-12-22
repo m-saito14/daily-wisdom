@@ -1,0 +1,62 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+  lint-and-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 1. 型チェック (TypeScript)
+      - name: Type check
+        run: npx tsc --noEmit
+
+      # 2. 静的解析 (ESLint)
+      - name: Lint check
+        run: npm run lint
+
+      # 3. ビルドチェック (本番ビルドが通るか確認)
+      - name: Build check
+        run: npm run build
+        env:
+          # ビルド時に必要な環境変数があればダミー値で入れる
+          AWS_REGION: us-east-1
+  
+  terraform-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init -backend=false # バックエンド（GCS）へのアクセスなしでOK
+
+      - name: Terraform Validate
+        working-directory: ./terraform
+        run: terraform validate
+
+      - name: Terraform Format Check
+        working-directory: ./terraform
+        run: terraform fmt -check
