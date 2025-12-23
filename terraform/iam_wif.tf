@@ -53,14 +53,14 @@ resource "google_iam_workload_identity_pool_provider" "github_provider" {
   workload_identity_pool_id          = google_iam_workload_identity_pool.github_pool.workload_identity_pool_id
   workload_identity_pool_provider_id = "github-provider"
   display_name                       = "GitHub Actions Provider"
-  
+
   # GitHubの情報をGCPの属性にマッピング
   attribute_mapping = {
     "google.subject"       = "assertion.sub"
     "attribute.repository" = "assertion.repository"
     # assertion.ref は下の attribute_condition で直接使うのでマッピング必須ではないが、
     # 将来的にログ等で確認できるようマッピングしておくと便利
-    "attribute.git_ref"    = "assertion.ref"
+    "attribute.git_ref" = "assertion.ref"
   }
 
   # ここでセキュリティチェックを行う（門番の役割）
@@ -81,7 +81,7 @@ resource "google_iam_workload_identity_pool_provider" "github_provider" {
 resource "google_service_account_iam_member" "wif_binding" {
   service_account_id = google_service_account.github_actions_sa.name
   role               = "roles/iam.workloadIdentityUser"
-  
+
   # プロバイダー側で厳密に絞っているため、ここでは「このプールからのアクセスは許可」とするだけで安全。
   # これにより、複雑な condition 式によるエラーを回避できる。
   member = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_pool.name}/*"
