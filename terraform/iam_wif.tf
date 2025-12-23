@@ -68,7 +68,7 @@ resource "google_iam_workload_identity_pool_provider" "github_provider" {
   # 指定のリポジトリ かつ 指定のブランチ(main or develop) のみ通過させる。
   attribute_condition = <<EOF
     assertion.repository == "m-saito14/daily-wisdom" && 
-    (assertion.ref == "refs/heads/main" || assertion.ref == "refs/heads/develop")
+    (assertion.ref == "refs/heads/main" || assertion.ref == "refs/heads/develop" || assertion.event_name == 'pull_request')
   EOF
 
   oidc {
