@@ -65,10 +65,10 @@ resource "google_iam_workload_identity_pool_provider" "github_provider" {
 
   # ここでセキュリティチェックを行う（門番の役割）
   # GitHubからの生のデータ (assertion) を使って判定。
-  # 指定のリポジトリ かつ 指定のブランチ(main or develop) のみ通過させる。
+  # 指定のリポジトリ かつ （指定のブランチ(main or develop) またはプルリクエスト）の場合のみ通過させる。
   attribute_condition = <<EOF
     assertion.repository == "m-saito14/daily-wisdom" && 
-    (assertion.ref == "refs/heads/main" || assertion.ref == "refs/heads/develop" || assertion.event_name == 'pull_request')
+    (assertion.ref == "refs/heads/main" || assertion.ref == "refs/heads/develop" || assertion.event_name == "pull_request")
   EOF
 
   oidc {
