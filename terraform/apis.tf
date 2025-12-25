@@ -1,12 +1,13 @@
 # 必要なAPIを一括有効化
 resource "google_project_service" "enabled_apis" {
   for_each = toset([
-    "run.googleapis.com",                 # Cloud Run
-    "artifactregistry.googleapis.com",    # Artifact Registry
-    "iam.googleapis.com",                 # IAM
-    "iamcredentials.googleapis.com",      # Service Account Credentials (WIFで必要)
-    "secretmanager.googleapis.com",       # Secret Manager
-    "cloudresourcemanager.googleapis.com" # Project API管理
+    "run.googleapis.com",                  # Cloud Run
+    "artifactregistry.googleapis.com",     # Artifact Registry
+    "iam.googleapis.com",                  # IAM
+    "iamcredentials.googleapis.com",       # Service Account Credentials (WIFで必要)
+    "secretmanager.googleapis.com",        # Secret Manager
+    "cloudresourcemanager.googleapis.com", # Project API管理
+    "aiplatform.googleapis.com"            # Vertex AI API
   ])
 
   project = var.project_id
