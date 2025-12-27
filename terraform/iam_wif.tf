@@ -40,6 +40,13 @@ resource "google_project_iam_member" "sa_user" {
   member  = "serviceAccount:${google_service_account.github_actions_sa.email}"
 }
 
+# Vertex AI ユーザー権限の追加
+resource "google_project_iam_member" "vertex_ai_user" {
+  project = var.project_id
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
 # --- 3. Workload Identity Federation (WIF) ---
 
 # プールの作成
