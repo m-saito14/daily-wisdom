@@ -37,6 +37,8 @@ jobs:
         env:
           # ビルド時に必要な環境変数があればダミー値で入れる
           AWS_REGION: us-east-1
+          GOOGLE_VERTEX_LOCATION: asia-northeast1
+          GOOGLE_VERTEX_PROJECT: gcp-learning-lab-476308
   
   terraform-check:
     runs-on: ubuntu-latest

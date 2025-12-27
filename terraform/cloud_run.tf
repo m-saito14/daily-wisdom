@@ -50,6 +50,15 @@ resource "google_cloud_run_v2_service" "daily_wisdom_app" {
         }
       }
 
+      env {
+        name  = "GOOGLE_VERTEX_LOCATION"
+        value = "asia-northeast1"
+      }
+      env {
+        name  = "GOOGLE_VERTEX_PROJECT"
+        value = "gcp-learning-lab-476308"
+      }
+
       resources {
         limits = {
           memory = "512Mi"
