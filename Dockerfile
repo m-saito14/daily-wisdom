@@ -11,6 +11,9 @@ RUN npm ci
 # アプリケーションのソースコードをコピー
 COPY . .
 
+ENV GOOGLE_VERTEX_LOCATION=asia-northeast1
+ENV GOOGLE_VERTEX_PROJECT=gcp-learning-lab-476308
+
 # Next.jsのビルドを実行
 RUN rm -rf .next out .mastra
 RUN npm run build
