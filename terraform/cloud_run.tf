@@ -64,7 +64,7 @@ resource "google_cloud_run_v2_service" "daily_wisdom_app" {
         name = "DATABASE_URL"
         value_source {
           secret_key_ref {
-            secret  = google_secret_manager_secret.aws_region.secret_id
+            secret  = google_secret_manager_secret.database_url.secret_id
             version = "latest"
           }
         }
@@ -75,7 +75,7 @@ resource "google_cloud_run_v2_service" "daily_wisdom_app" {
         name = "DATABASE_AUTH_TOKEN"
         value_source {
           secret_key_ref {
-            secret  = google_secret_manager_secret.aws_region.secret_id
+            secret  = google_secret_manager_secret.database_auth_token.secret_id
             version = "latest"
           }
         }
