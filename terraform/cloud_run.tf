@@ -59,6 +59,28 @@ resource "google_cloud_run_v2_service" "daily_wisdom_app" {
         value = "gcp-learning-lab-476308"
       }
 
+      # Secret: DATABASE_URL
+      env {
+        name = "DATABASE_URL"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.aws_region.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      # Secret: DATABASE_AUTH_TOKEN
+      env {
+        name = "DATABASE_AUTH_TOKEN"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.aws_region.secret_id
+            version = "latest"
+          }
+        }
+      }
+
       resources {
         limits = {
           memory = "512Mi"
