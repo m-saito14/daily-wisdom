@@ -21,3 +21,19 @@ resource "google_secret_manager_secret" "aws_region" {
   }
   depends_on = [google_project_service.enabled_apis]
 }
+
+resource "google_secret_manager_secret" "database_url" {
+  secret_id = "DATABASE_URL"
+  replication {
+    auto {}
+  }
+  depends_on = [google_project_service.enabled_apis]
+}
+
+resource "google_secret_manager_secret" "database_auth_token" {
+  secret_id = "DATABASE_AUTH_TOKEN"
+  replication {
+    auto {}
+  }
+  depends_on = [google_project_service.enabled_apis]
+}
