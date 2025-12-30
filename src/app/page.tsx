@@ -127,7 +127,7 @@ export default function Home() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-opacity-50 mb-4"></div>
-        <p className="text-gray-600 font-medium">本日の教養を生成しています...</p>
+        <p className="text-gray-600 font-medium">本日のディズニー教養を生成しています...</p>
         <p className="text-sm text-gray-400 mt-2">（初回は30秒ほどかかります）</p>
       </div>
     );

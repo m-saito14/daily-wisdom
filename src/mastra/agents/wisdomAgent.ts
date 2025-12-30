@@ -13,15 +13,24 @@ export const dailyWisdomSchema = z.object({
   items: z.array(
     z.object({
       category: z.enum([
-        'History', 'Science', 'Art', 'Business', 'Philosophy', 'Technology', 'Nature', 'Psychology'
-      ]).describe("トピックのジャンル"),
-      title: z.string().describe("興味を惹くタイトル"),
-      content: z.string().describe("300文字程度の詳細な解説。読者が『へぇ〜』と思うような豆知識を含めること。"),
+        'Park Secret',     // 隠れミッキー、BGS（バックグラウンドストーリー）、プロップスの秘密
+        'Movie Trivia',    // アトラクションの元ネタとなった映画の知識
+        'Attraction',      // アトラクションの仕組み、見逃しがちな演出
+        'Food & Merch',    // レストランの物語、ワゴンフードの豆知識
+        'History',         // ウォルト・ディズニーの精神、パーク建設の歴史
+        'Character'        // キャラクターの性格、グリーティングのコツ
+      ]).describe("ディズニー知識のジャンル"),
+      
+      title: z.string().describe("「知りたい！」と思わせる魔法のようなタイトル"),
+      
+      // 内容の指示を「パーク体験の向上」に向けさせる
+      content: z.string().describe("300文字程度の解説。初心者がパークに行った際、「これ知ってる！」と友達に自慢できたり、アトラクションの待ち時間が楽しくなったりするような、体験に深みを与える内容にすること。"),
+      
       quiz: z.object({
-        question: z.string().describe("解説内容に基づいた理解度確認クイズ"),
+        question: z.string().describe("その知識に基づいた、パークで確認したくなるクイズ"),
         options: z.array(z.string()).length(4).describe("4つの選択肢"),
         correctAnswer: z.string().describe("正解の選択肢（文字列そのもの）"),
-        explanation: z.string().describe("なぜその答えになるのかの解説"),
+        explanation: z.string().describe("正解の解説と、補足トリビア"),
       })
     })
   ).length(5).describe("必ず異なるジャンルから5つのトピックを生成すること")
@@ -29,15 +38,16 @@ export const dailyWisdomSchema = z.object({
 
 // エージェントを作成
 export const wisdomAgent = new Agent({
-  name: 'Wisdom Professor',
+  name: 'Disney Concierge',
   instructions: `
-    あなたは博識でユーモアのある大学教授です。
-    ユーザーの教養を深めるために、毎日異なる分野からランダムに5つのトピックを選び、解説してください。
+    あなたはディズニーリゾートとディズニー作品に精通した、世界一の「ディズニーコンシェルジュ」です。
+    ディズニー初心者であるユーザーが、ディズニーリゾート（ランド・シー）を訪れた際に「120%楽しめる」ようになるための、魔法のような知識を授けてください。
 
     以下のルールを厳守してください：
-    1. ジャンルはバラバラに選ぶこと（例：歴史ばかりにしない）。
-    2. 解説は初心者にもわかりやすく、かつ知的好奇心を刺激する内容にすること。
-    3. 必ず指定されたJSON形式で出力すること。余計な会話文は不要です。
+    1. **「パーク体験」に紐づけること**: 単なる映画のあらすじではなく、「この映画のこのシーンを知っていると、あのアトラクションのQライン（待機列）にあるプロップスの意味がわかる」といった、現地で役立つ視点で解説してください。
+    2. **初心者への配慮**: 専門用語（BGS、Qラインなど）を使う場合は、さりげなく意味を補足するか、わかりやすい言葉で伝えてください。
+    3. **ワクワク感**: 読むだけでパークに行きたくなるような、ポジティブで夢のあるトーンで話してください。
+    4. 必ず指定されたJSON形式で出力すること。
   `,
   model: modelDef,
 });
