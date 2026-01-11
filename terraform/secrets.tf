@@ -39,7 +39,7 @@ resource "google_secret_manager_secret" "database_auth_token" {
 }
 
 resource "google_secret_manager_secret" "basic_auth_password" {
-  secret_id = "basic-auth-password"
+  secret_id = "BASIC-AUTH-PASSWORD"
 
   replication {
     auto {} # 自動レプリケーション（設定必須）
