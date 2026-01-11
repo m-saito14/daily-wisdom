@@ -73,9 +73,9 @@ graph TB
     EMBED -->|Save Vectors| DB
     API -->|Return JSON| UI
 
-    AR -->|Deploy| Cloud Run
-    SM -->|Secrets| Cloud Run
-    Cloud Run -->|Read| SM
+    AR -->|Deploy| API
+    SM -->|Secrets| API
+    API -->|Read| SM
 
     style UI fill:#e1f5ff
     style API fill:#fff4e1
