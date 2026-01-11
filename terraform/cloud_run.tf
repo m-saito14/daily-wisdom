@@ -81,6 +81,21 @@ resource "google_cloud_run_v2_service" "daily_wisdom_app" {
         }
       }
 
+      env {
+        name  = "BASIC_AUTH_USER"
+        value = "admin"
+      }
+
+      env {
+        name = "BASIC_AUTH_PASSWORD"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.basic_auth_password.secret_id
+            version = "latest"
+          }
+        }
+      }
+
       resources {
         limits = {
           memory = "512Mi"
