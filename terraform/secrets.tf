@@ -46,3 +46,27 @@ resource "google_secret_manager_secret" "basic_auth_password" {
   }
   depends_on = [google_project_service.enabled_apis]
 }
+
+resource "google_secret_manager_secret" "langfuse_public_key" {
+  secret_id = "LANGFUSE_PUBLIC_KEY"
+  replication {
+    auto {}
+  }
+  depends_on = [google_project_service.enabled_apis]
+}
+
+resource "google_secret_manager_secret" "langfuse_secret_key" {
+  secret_id = "LANGFUSE_SECRET_KEY"
+  replication {
+    auto {}
+  }
+  depends_on = [google_project_service.enabled_apis]
+}
+
+resource "google_secret_manager_secret" "langfuse_baseurl" {
+  secret_id = "LANGFUSE_BASEURL"
+  replication {
+    auto {}
+  }
+  depends_on = [google_project_service.enabled_apis]
+}

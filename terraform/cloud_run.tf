@@ -96,6 +96,39 @@ resource "google_cloud_run_v2_service" "daily_wisdom_app" {
         }
       }
 
+      # Secret: LANGFUSE_PUBLIC_KEY
+      env {
+        name = "LANGFUSE_PUBLIC_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.langfuse_public_key.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      # Secret: LANGFUSE_SECRET_KEY
+      env {
+        name = "LANGFUSE_SECRET_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.langfuse_secret_key.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      # Secret: LANGFUSE_BASEURL
+      env {
+        name = "LANGFUSE_BASEURL"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.langfuse_baseurl.secret_id
+            version = "latest"
+          }
+        }
+      }
+
       resources {
         limits = {
           memory = "512Mi"
