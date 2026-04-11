@@ -41,6 +41,14 @@ export async function GET() {
       system: systemInstruction, // 更新した指示を使用
       prompt: "今日の5つのトピックを生成してください。",
       schema: dailyWisdomSchema,
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'generate-disney-wisdom',
+        metadata: {
+          date: new Date().toISOString().split('T')[0],
+          avoidListCount: recentWisdoms.rows.length,
+        },
+      },
     });
 
     // 4. 【Indexing】生成結果をベクトル化してDBに保存
@@ -57,6 +65,14 @@ export async function GET() {
       const { embedding } = await embed({
         model: googleVertex.textEmbeddingModel('text-embedding-004'),
         value: `${item.title}: ${item.content}`,
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'embed-wisdom-item',
+          metadata: {
+            category: item.category,
+            title: item.title,
+          },
+        },
       });
 
       // (B) SQLで保存
