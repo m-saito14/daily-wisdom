@@ -38,15 +38,6 @@ resource "google_secret_manager_secret" "database_auth_token" {
   depends_on = [google_project_service.enabled_apis]
 }
 
-resource "google_secret_manager_secret" "basic_auth_password" {
-  secret_id = "BASIC-AUTH-PASSWORD"
-
-  replication {
-    auto {} # 自動レプリケーション（設定必須）
-  }
-  depends_on = [google_project_service.enabled_apis]
-}
-
 resource "google_secret_manager_secret" "langfuse_public_key" {
   secret_id = "LANGFUSE_PUBLIC_KEY"
   replication {
