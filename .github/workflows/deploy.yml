@@ -72,9 +72,11 @@ jobs:
         working-directory: ./terraform
         run: |
           terraform init
-          # Cloud Runサービスのイメージを新しいタグで更新するために、-varで新しいイメージを渡します。
-          # ※ cloud_run.tf に新しい変数 (new_image_tag) の定義と使用が必要です (後述)
+          # Cloud Run のイメージを「コミットSHAタグ」で更新する。
+          # image_tag に github.sha を渡すことで image 属性が毎回変化し、
+          # 新しいリビジョンが作成されて最新イメージが参照される。
+          # （:latest 固定だと Terraform が差分を検知できず更新されない）
           terraform apply -auto-approve \
             -var="project_id=${{ env.PROJECT_ID }}" \
-            -var="github_repo=${{ github.repository }}"
-            #-var="new_image_tag=${{ steps.build-image.outputs.IMAGE_TAG }}" # こちらはオプション。現状のcloud_run.tfでは不要なため削除。
+            -var="github_repo=${{ github.repository }}" \
+            -var="image_tag=${{ github.sha }}"
