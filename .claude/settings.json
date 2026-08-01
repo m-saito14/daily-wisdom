@@ -1,0 +1,74 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(git show*)",
+      "Bash(git stash list)",
+      "Bash(npm run lint)",
+      "Bash(npm run build)",
+      "Bash(npm run dev)",
+      "Bash(npm ci)",
+      "Bash(npm install)",
+      "Bash(npm install --*)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(node --version)",
+      "Bash(npm --version)",
+      "Bash(ls*)",
+      "Bash(lsof*)",
+      "Bash(terraform validate)",
+      "Bash(terraform fmt*)",
+      "Bash(terraform init*)",
+      "Bash(terraform plan*)",
+      "Bash(gh pr create*)",
+      "Bash(gh pr view*)",
+      "Bash(gh pr list*)",
+      "Bash(gh pr diff*)",
+      "Bash(git push*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git push*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "branch=$(git branch --show-current 2>/dev/null); if [ \"$branch\" = 'main' ] || [ \"$branch\" = 'develop' ]; then echo \"[BLOCKED] $branch ブランチへの直接プッシュは禁止です。feature/* または fix/* ブランチを使用してください。\" >&2; exit 2; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(git commit*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== Pre-commit checklist (CLAUDE.md) ===\n1. 横展開: スキーマ/環境変数/DBカラム変更の波及漏れがないか\n2. セキュリティ: 鍵・トークンのハードコード / SQL のプレースホルダバインド / LLM 出力の XSS がないか\n3. 型/Lint/ビルド: tsc --noEmit / lint / build を確認したか\n4. ドキュメント: README / docs / CLAUDE.md の更新が必要でないか\n=== 未確認の項目があれば先に対応してください ==='"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash(npm run build)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== ビルド完了 ===\n通った場合: /commit スキルでコミット前チェックに進めます\n失敗した場合: エラーを修正してから再実行してください'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash(gh pr create*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== PR 作成完了 ===\nCI が自動実行されます（型チェック / Lint / ビルド / terraform-check）\n※ develop へマージすると Cloud Run へ自動デプロイされます。CI 通過と動作確認を必ず確認してください。'"
+          }
+        ]
+      }
+    ]
+  }
+}
