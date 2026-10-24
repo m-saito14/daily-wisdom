@@ -65,7 +65,7 @@ Dockerfile                        # コンテナイメージ定義
 - **主要な定義**:
   - `dailyWisdomSchema`: 出力データの型定義（Zod）
   - `wisdomAgent`: ディズニーコンシェルジュとしてのペルソナを持つ AI エージェント
-  - `modelDef`: Google Vertex AI の Gemini 2.5 Flash モデル設定
+  - `modelDef`: Google Vertex AI の Gemini 3.8 Flash モデル設定
 
 #### `src/lib/db.ts`
 - **役割**: LibSQL/Turso データベースクライアントの初期化
@@ -76,7 +76,7 @@ Dockerfile                        # コンテナイメージ定義
 ## 技術スタック
 - **フロントエンド**: Next.js 16, React 19, TypeScript
 - **バックエンド**: Next.js API Routes
-- **AI/LLM**: Google Vertex AI (Gemini 2.5 Flash via Vercel AI SDK)
+- **AI/LLM**: Google Vertex AI (Gemini 3.8 Flash via Vercel AI SDK)
 - **Embedding**: Google Vertex AI (text-embedding-004)
 - **データベース**: LibSQL/Turso（ベクトル検索対応SQLite）
 - **データ検証**: Zod
@@ -130,7 +130,7 @@ http://localhost:3000 でアプリケーションにアクセスできます。
 1. **フロントエンド** (`page.tsx`) → ローカルストレージを確認、キャッシュがない場合のみ `/api/generate` にリクエスト送信
 2. **API** (`route.ts`) → **Retrieval Phase**: データベースから過去30件のトピックを取得し、禁止リストを作成
 3. **API** → **Generation Phase**: `wisdomAgent` の定義を参照し、禁止リストをシステムプロンプトに注入
-4. **AI エージェント** (`wisdomAgent.ts`) → Vertex AI (Gemini 2.5 Flash) に「5つのトピック生成」を指示
+4. **AI エージェント** (`wisdomAgent.ts`) → Vertex AI (Gemini 3.8 Flash) に「5つのトピック生成」を指示
 5. **LLM 出力** → `dailyWisdomSchema` で検証
 6. **API** → **Indexing Phase**: 各トピックをベクトル化（text-embedding-004）してデータベースに保存
 7. **フロントエンド** → データを取得し、ローカルストレージに保存して表示・クイズ実施

@@ -4,7 +4,7 @@
 
 ディズニーの教養を「解説 + 理解度クイズ」形式で毎日届ける Web アプリ。
 LLM が生成したトピックをベクトル化して DB に蓄積し、**RAG（過去トピックの重複排除）** で
-毎日新しい 5 トピックを生成する。生成は Vercel AI SDK 経由で Google Vertex AI（Gemini 2.5 Flash）を利用し、
+毎日新しい 5 トピックを生成する。生成は Vercel AI SDK 経由で Google Vertex AI（Gemini 3.8 Flash）を利用し、
 LLMOps として Langfuse でトレース・プロンプト管理を行う。
 
 ---
@@ -51,7 +51,7 @@ npx tsc --noEmit         # TypeScript 型チェック
 |---|---|
 | フロントエンド | Next.js 16 (App Router), React 19, Tailwind CSS 4 |
 | API | Next.js Route Handler（`src/app/api/generate/route.ts`） |
-| LLM | Vercel AI SDK v4（`ai@4.0.12`）+ Google Vertex AI（`gemini-2.5-flash`） |
+| LLM | Vercel AI SDK v4（`ai@4.0.12`）+ Google Vertex AI（`gemini-3.8-flash`、location: global） |
 | Agent 定義 | Mastra（`@mastra/core`）+ Zod スキーマ |
 | Embedding | Vertex `text-embedding-004`（768 次元） |
 | DB | LibSQL / Turso（`@libsql/client`、`vector32()` でベクトル格納） |

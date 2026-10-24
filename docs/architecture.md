@@ -19,7 +19,7 @@ Daily Wisdomは、ディズニーリゾートの知識を毎日5つ提供するW
 - **Mastra** (AIエージェント管理フレームワーク)
 
 #### AI/LLM
-- **Google Vertex AI** (Gemini 2.5 Flash)
+- **Google Vertex AI** (Gemini 3.8 Flash)
 - **Vercel AI SDK** (generateObject, embed)
 
 #### データベース
@@ -48,7 +48,7 @@ graph TB
         end
 
         subgraph "AI Services"
-            VERTEX[Vertex AI<br/>Gemini 2.5 Flash]
+            VERTEX[Vertex AI<br/>Gemini 3.8 Flash]
             EMBED[Vertex AI<br/>text-embedding-004]
         end
 
