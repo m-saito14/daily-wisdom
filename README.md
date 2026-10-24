@@ -88,7 +88,7 @@ Dockerfile                        # コンテナイメージ定義
 ## セットアップ
 
 ### 必要な環境
-- Node.js 18 以上
+- Node.js 24.22.1 以上
 - Google Cloud Platform アカウント（Vertex AI アクセス用）
 - LibSQL/Turso データベース（またはローカルSQLite）
 
