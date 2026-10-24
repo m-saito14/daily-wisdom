@@ -60,8 +60,11 @@ npm run build        # 生成・ビルド系の変更がある場合は特に確
 
 <必要に応じて詳細説明>
 
-Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+Co-Authored-By: <実際に作業しているモデル名> <noreply@anthropic.com>
 ```
+
+> Co-Authored-By のモデル名は固定値にせず、コミットを作成するモデルの正式名称（例: `Claude Opus 5.5`）を記載する。
+> Claude Code が指定する署名行がある場合はそれに従う。
 
 変更種別の例：`feat`, `fix`, `refactor`, `test`, `docs`, `chore`
 

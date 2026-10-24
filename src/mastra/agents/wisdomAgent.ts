@@ -1,11 +1,21 @@
 // src/mastra/agents/wisdomAgent.ts
 import { Agent } from '@mastra/core/agent';
 // import { bedrock } from "@ai-sdk/amazon-bedrock";
-import { vertex } from '@ai-sdk/google-vertex';
+import { createVertex } from '@ai-sdk/google-vertex';
 import { z } from 'zod';
 
 // export const modelDef = bedrock("us.anthropic.claude-3-7-sonnet-20250219-v1:0");
-export const modelDef = vertex("gemini-2.5-flash");
+// gemini-2.5-flash は Vertex AI で 2026-10-20 に提供終了したため gemini-3.8-flash へ移行。
+// gemini-3.8-flash は asia-northeast1 では提供されず global / us / eu のみ対応。
+// @ai-sdk/google-vertex@2.1.x は location から `{location}-aiplatform.googleapis.com` を組み立てるため、
+// global エンドポイントは baseURL で明示する（Embedding は従来どおり GOOGLE_VERTEX_LOCATION を使用）。
+const GENERATION_MODEL_ID = 'gemini-3.8-flash';
+const generationVertex = createVertex({
+  project: process.env.GOOGLE_VERTEX_PROJECT,
+  location: 'global',
+  baseURL: `https://aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_VERTEX_PROJECT}/locations/global/publishers/google`,
+});
+export const modelDef = generationVertex(GENERATION_MODEL_ID);
 
 // 出力データの「型」を定義 
 export const dailyWisdomSchema = z.object({
