@@ -31,6 +31,10 @@ env:
   # 同一 PR に対する自動修正の上限回数（無限ループ防止）
   MAX_ATTEMPTS: 2
   COMMIT_MARKER: '[dependabot-autofix]'
+  # ci.yml の Build check と同じダミー値（Claude が `npm run build` を確認できるようにする）
+  AWS_REGION: us-east-1
+  GOOGLE_VERTEX_LOCATION: asia-northeast1
+  GOOGLE_VERTEX_PROJECT: gcp-learning-lab-476308
 
 jobs:
   autofix:

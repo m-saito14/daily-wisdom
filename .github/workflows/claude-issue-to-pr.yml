@@ -26,6 +26,12 @@ concurrency:
   group: claude-issue-${{ github.event.issue.number }}
   cancel-in-progress: false
 
+env:
+  # ci.yml の Build check と同じダミー値（Claude が `npm run build` を確認できるようにする）
+  AWS_REGION: us-east-1
+  GOOGLE_VERTEX_LOCATION: asia-northeast1
+  GOOGLE_VERTEX_PROJECT: gcp-learning-lab-476308
+
 jobs:
   implement:
     runs-on: ubuntu-latest
