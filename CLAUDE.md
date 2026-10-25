@@ -91,7 +91,7 @@ fix/*      ← バグ修正
 
 | ワークフロー | トリガー | 内容 |
 |---|---|---|
-| `dependabot-auto-merge.yml` | Dependabot PR の作成・更新 | auto-merge（squash）を設定。必須チェック通過で GitHub がマージ。major は `needs-review` ラベルを付けて手動 |
+| `dependabot-auto-merge.yml` | Dependabot PR の作成 / CI 成功（`workflow_run`） | CI 成功時にワークフロー自身が squash マージし、`deploy.yml` を `workflow_dispatch` で起動。major と `.github/workflows` 変更 PR は `needs-review` で手動 |
 | `dependabot-ci-autofix.yml` | Dependabot PR の CI 失敗（`workflow_run`） | Claude Code が修正コミットを PR ブランチに push（最大 2 回、超過時は `needs-review`） |
 | `claude-issue-to-pr.yml` | Issue 作成 / `claude` ラベル付与 | Claude Code が実装 → `feature/issue-N-*` or `fix/issue-N-*` で develop 向け PR を作成 |
 

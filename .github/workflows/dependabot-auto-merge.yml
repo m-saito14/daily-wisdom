@@ -1,26 +1,25 @@
 name: Dependabot Auto Merge
 
-# Dependabot の PR に GitHub ネイティブの auto-merge を設定する。
-# 実際のマージは「必須ステータスチェック（ci.yml）がすべて通過した時点」で GitHub が行う。
-# CI が落ちた場合はマージされず、dependabot-ci-autofix.yml が修正コミットを試みる。
+# Dependabot の PR を、CI（ci.yml）が通過した時点でこのワークフロー自身がマージする。
+# GitHub ネイティブの auto-merge・ブランチ保護・PAT は不要。
 #
-# 前提（リポジトリ設定）:
-#   1. Settings > General > Pull Requests > "Allow auto-merge" を ON
-#   2. develop のブランチ保護（または Ruleset）で必須ステータスチェックに
-#      "lint-and-check" と "terraform-check" を指定
-#   3. (推奨) Dependabot secrets に AUTO_MERGE_TOKEN（Fine-grained PAT:
-#      Contents / Pull requests = Read and write）を登録。
-#      GITHUB_TOKEN でマージすると develop への push で deploy.yml が起動しないため。
+#   1. label-major: PR 作成時に semver-major なら `needs-review` ラベルを付ける（自動マージ対象外）
+#   2. merge:       CI 成功（workflow_run）を受けて PR をマージし、deploy.yml を起動する
+#
+# GITHUB_TOKEN によるマージでは develop への push イベントで deploy.yml が起動しないため、
+# マージ後に workflow_dispatch で明示的にデプロイを起動する（workflow_dispatch は GITHUB_TOKEN でも起動可能）。
+#
+# CI が失敗した場合はマージされず、dependabot-ci-autofix.yml が修正コミットを試みる。
+# 修正 push で CI が再実行され、成功すれば本ワークフローがマージする。
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, reopened]
     branches:
       - develop
-
-permissions:
-  contents: write
-  pull-requests: write
+  workflow_run:
+    workflows: ["Continuous Integration"]
+    types: [completed]
 
 env:
   # semver-major も自動マージする場合は 'true' にする。
@@ -28,9 +27,12 @@ env:
   ALLOW_MAJOR: 'false'
 
 jobs:
-  enable-auto-merge:
+  label-major:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
+    permissions:
+      pull-requests: write
+      issues: write
     steps:
       - name: Fetch Dependabot metadata
         id: metadata
@@ -38,18 +40,72 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Enable auto-merge (squash)
-        if: steps.metadata.outputs.update-type != 'version-update:semver-major' || env.ALLOW_MAJOR == 'true'
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN || secrets.GITHUB_TOKEN }}
-        run: gh pr merge --auto --squash "$PR_URL"
-
       - name: Label major update for manual review
         if: steps.metadata.outputs.update-type == 'version-update:semver-major' && env.ALLOW_MAJOR != 'true'
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh label create needs-review --color d93f0b --description "人手のレビューが必要" 2>/dev/null || true
+          gh label create needs-review --repo "$GITHUB_REPOSITORY" --color d93f0b --description "人手のレビューが必要" 2>/dev/null || true
           gh pr edit "$PR_URL" --add-label needs-review
+
+  merge:
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.pull_requests[0] &&
+      github.event.workflow_run.pull_requests[0].base.ref == 'develop' &&
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/')
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: write # deploy.yml の workflow_dispatch に必要
+    concurrency:
+      group: dependabot-merge
+      cancel-in-progress: false
+    steps:
+      - name: Merge PR
+        id: merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          pr=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json state,author,labels)
+          state=$(jq -r '.state' <<<"$pr")
+          author=$(jq -r '.author.login' <<<"$pr")
+          case "$author" in
+            app/dependabot|dependabot\[bot\]) is_dependabot=true ;;
+            *) is_dependabot=false ;;
+          esac
+          if [ "$state" != "OPEN" ] || [ "$is_dependabot" != "true" ]; then
+            echo "skip: state=$state author=$author"
+            echo "merged=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if jq -e '.labels[] | select(.name == "needs-review")' <<<"$pr" >/dev/null; then
+            echo "skip: needs-review ラベル付き"
+            echo "merged=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # --match-head-commit: CI を通過したコミットから HEAD が進んでいたらマージしない
+          if gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --squash --delete-branch --match-head-commit "$HEAD_SHA"; then
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+          else
+            # 例: .github/workflows を変更する PR は GITHUB_TOKEN ではマージできない
+            gh label create needs-review --repo "$GITHUB_REPOSITORY" --color d93f0b --description "人手のレビューが必要" 2>/dev/null || true
+            gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label needs-review
+            gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
+              --body "CI は通過しましたが自動マージに失敗しました（ワークフローファイルの変更・コンフリクト等）。手動でマージしてください。"
+            echo "merged=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger deploy
+        if: steps.merge.outputs.merged == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref develop
