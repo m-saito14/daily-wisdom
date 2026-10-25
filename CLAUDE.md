@@ -95,7 +95,7 @@ fix/*      ← バグ修正
 | `dependabot-ci-autofix.yml` | Dependabot PR の CI 失敗（`workflow_run`） | Claude Code が修正コミットを PR ブランチに push（最大 2 回、超過時は `needs-review`） |
 | `claude-issue-to-pr.yml` | Issue 作成 / `claude` ラベル付与 | Claude Code が実装 → `feature/issue-N-*` or `fix/issue-N-*` で develop 向け PR を作成 |
 
-Dependabot 設定は `.github/dependabot.yml`（weekly・minor/patch はグループ化）。
+Dependabot 設定は `.github/dependabot.yml`（weekly・minor/patch とセキュリティアップデートはそれぞれグループ化）。
 
 ---
 

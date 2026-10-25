@@ -14,7 +14,8 @@ name: Dependabot Auto Merge
 
 on:
   pull_request:
-    types: [opened, reopened]
+    # synchronize も対象にし、既存 PR を `@dependabot rebase` した場合にも major 判定を行う
+    types: [opened, reopened, synchronize]
     branches:
       - develop
   workflow_run:

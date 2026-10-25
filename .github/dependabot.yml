@@ -20,6 +20,11 @@ updates:
         update-types:
           - minor
           - patch
+      # セキュリティアップデート（脆弱性対応 PR）も 1 PR にまとめる
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
     ignore:
       # ai / Mastra / AI SDK は package.json の overrides で互換バージョンを固定している。
       # major 更新は API 互換性が崩れるため手動で行う。
