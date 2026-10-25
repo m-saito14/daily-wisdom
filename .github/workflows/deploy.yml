@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - develop # developブランチにプッシュされたら実行
+  # dependabot-auto-merge.yml からマージ後に起動される（GITHUB_TOKEN のマージでは push イベントが発火しないため）
+  workflow_dispatch:
+
+# 連続マージ時に terraform apply が並行実行されないよう直列化する
+concurrency:
+  group: deploy-cloud-run
+  cancel-in-progress: false
 
 env:
   PROJECT_ID: gcp-learning-lab-476308 # GitHub Variablesで定義

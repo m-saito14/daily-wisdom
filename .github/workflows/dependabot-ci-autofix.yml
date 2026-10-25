@@ -1,0 +1,127 @@
+name: Dependabot CI Auto Fix
+
+# Dependabot PR の CI（ci.yml）が失敗したら、Claude Code が原因を調査して
+# 修正コミットを同じ PR ブランチに push する。
+# push は Claude GitHub App のトークンで行われるため CI が再実行され、
+# 通過すれば dependabot-auto-merge.yml で設定した auto-merge によりマージされる。
+#
+# 前提:
+#   - Claude GitHub App をリポジトリにインストール済み（https://github.com/apps/claude）
+#   - secrets に CLAUDE_CODE_OAUTH_TOKEN（`claude setup-token` で発行）または ANTHROPIC_API_KEY を登録
+#     ※ Dependabot 起点の実行では Dependabot secrets しか参照できない場合があるため、
+#       Actions secrets と Dependabot secrets の両方に登録しておく
+
+on:
+  workflow_run:
+    workflows: ["Continuous Integration"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+  id-token: write # Claude GitHub App トークン取得（OIDC）に必要
+
+concurrency:
+  group: dependabot-autofix-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+env:
+  # 同一 PR に対する自動修正の上限回数（無限ループ防止）
+  MAX_ATTEMPTS: 2
+  COMMIT_MARKER: '[dependabot-autofix]'
+
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+    if: |
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.pull_requests[0] &&
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/')
+    steps:
+      - name: Check attempt count
+        id: guard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+        run: |
+          attempts=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json commits \
+            --jq "[.commits[] | select(.messageHeadline | contains(\"$COMMIT_MARKER\"))] | length")
+          echo "attempts=$attempts"
+          if [ "$attempts" -ge "$MAX_ATTEMPTS" ]; then
+            gh label create needs-review --repo "$GITHUB_REPOSITORY" --color d93f0b --description "人手のレビューが必要" 2>/dev/null || true
+            gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label needs-review
+            gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
+              --body "自動修正を ${MAX_ATTEMPTS} 回試みましたが CI が通過しませんでした。手動で確認してください。"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout PR branch
+        if: steps.guard.outputs.skip == 'false'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        if: steps.guard.outputs.skip == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+          cache: 'npm'
+
+      - name: Setup Terraform
+        if: steps.guard.outputs.skip == 'false'
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Collect failed job logs
+        if: steps.guard.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          # ログはファイルに書き出し、プロンプトへ直接埋め込まない（サイズ・インジェクション対策）
+          gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" --log-failed | tail -n 400 > "$RUNNER_TEMP/ci-failure.log"
+          wc -l "$RUNNER_TEMP/ci-failure.log"
+
+      - name: Fix CI failure with Claude
+        if: steps.guard.outputs.skip == 'false'
+        uses: anthropics/claude-code-action@v1
+        env:
+          CLAUDE_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # workflow_run の起動ユーザーが dependabot[bot] のため許可が必要
+          allowed_bots: 'dependabot[bot]'
+          prompt: |
+            このリポジトリ（${{ github.repository }}）の Dependabot PR #${{ github.event.workflow_run.pull_requests[0].number }}
+            で CI（.github/workflows/ci.yml）が失敗しました。
+            現在チェックアウトされているブランチ `${{ github.event.workflow_run.head_branch }}` 上で修正してください。
+
+            失敗した CI ジョブのログ: ${{ runner.temp }}/ci-failure.log （Read で読むこと）
+            CI 実行 URL: ${{ github.event.workflow_run.html_url }}
+
+            手順:
+            1. CLAUDE.md を読み、プロジェクトの規約を把握する
+            2. ログと `git log -p origin/develop..HEAD` から、依存更新で何が壊れたかを特定する
+            3. 依存更新に追従する最小限の修正を行う（型・API 変更への追従、設定ファイルの修正、lockfile の再生成など）
+               - 依存のバージョンを元に戻す・テストや Lint ルールを無効化する・`any` や `@ts-ignore` で握りつぶす、は禁止
+            4. CI と同じチェックをローカルで実行し、すべて通ることを確認する
+               - `npm ci` → `npx tsc --noEmit` → `npm run lint` → `npm run build`
+               - terraform 関連の失敗なら `cd terraform && terraform init -backend=false && terraform validate && terraform fmt -check`
+            5. 変更をコミットし `git push origin HEAD` する
+               - コミットメッセージの 1 行目は必ず `${{ env.COMMIT_MARKER }}` で始める（例: `${{ env.COMMIT_MARKER }} fix: next 16.x の型変更に追従`）
+            6. 修正内容と原因を PR #${{ github.event.workflow_run.pull_requests[0].number }} に `gh pr comment` で簡潔に報告する
+
+            依存更新に追従するだけでは直せない（大規模な移行が必要など）と判断した場合は、コードを変更せず、
+            理由と必要な対応を PR にコメントし、`gh pr edit --add-label needs-review` を実行して終了すること。
+          claude_args: |
+            --max-turns 60
+            --allowedTools "Read,Edit,MultiEdit,Write,Glob,Grep,LS,Bash(npm:*),Bash(npx:*),Bash(node:*),Bash(git:*),Bash(terraform:*),Bash(cd:*),Bash(gh pr comment:*),Bash(gh pr edit:*),Bash(gh pr view:*),Bash(gh pr diff:*)"

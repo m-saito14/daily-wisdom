@@ -1,0 +1,77 @@
+# Dependabot 設定
+# - PR は develop に向ける（CLAUDE.md のブランチ戦略に合わせる）
+# - 更新頻度を weekly に落とし、minor / patch は 1 PR にまとめて PR 数を削減する
+# - major は個別 PR（自動マージ対象外。dependabot-auto-merge.yml 参照）
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    groups:
+      npm-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+      # セキュリティアップデート（脆弱性対応 PR）も 1 PR にまとめる
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+    ignore:
+      # ai / Mastra / AI SDK は package.json の overrides で互換バージョンを固定している。
+      # major 更新は API 互換性が崩れるため手動で行う。
+      - dependency-name: "ai"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@ai-sdk/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@mastra/*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    labels:
+      - dependencies
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: docker
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    labels:
+      - dependencies
+
+  - package-ecosystem: terraform
+    directory: /terraform
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    labels:
+      - dependencies
+    groups:
+      terraform:
+        patterns:
+          - "*"

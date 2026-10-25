@@ -87,6 +87,16 @@ fix/*      ← バグ修正
 - **develop への push（PR マージ含む）** で `deploy.yml` が実行され、Docker ビルド → Artifact Registry → `terraform apply` で **Cloud Run に自動デプロイ**される。
 - `main` / `develop` への直接 push は禁止。必ず `feature/*` か `fix/*` から PR を出す。
 
+### 自動化ワークフロー
+
+| ワークフロー | トリガー | 内容 |
+|---|---|---|
+| `dependabot-auto-merge.yml` | Dependabot PR の作成 / CI 成功（`workflow_run`） | CI 成功時にワークフロー自身が squash マージし、`deploy.yml` を `workflow_dispatch` で起動。major と `.github/workflows` 変更 PR は `needs-review` で手動 |
+| `dependabot-ci-autofix.yml` | Dependabot PR の CI 失敗（`workflow_run`） | Claude Code が修正コミットを PR ブランチに push（最大 2 回、超過時は `needs-review`） |
+| `claude-issue-to-pr.yml` | Issue 作成 / `claude` ラベル付与 | Claude Code が実装 → `feature/issue-N-*` or `fix/issue-N-*` で develop 向け PR を作成 |
+
+Dependabot 設定は `.github/dependabot.yml`（weekly・minor/patch とセキュリティアップデートはそれぞれグループ化）。
+
 ---
 
 ## 環境変数（`.env.local`）

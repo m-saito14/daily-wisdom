@@ -1,0 +1,89 @@
+name: Claude Issue to PR
+
+# Issue を起点に Claude Code が実装 → コミット → develop 向け PR 作成までを自動で行う。
+#
+# 起動条件:
+#   - リポジトリのオーナー / メンバー / コラボレーターが Issue を作成したとき
+#     （`no-claude` ラベル付きで作成した Issue は対象外）
+#   - 既存 Issue に `claude` ラベルを付けたとき（再実行・後から依頼する場合）
+#
+# 前提:
+#   - Claude GitHub App をリポジトリにインストール済み（https://github.com/apps/claude）
+#   - Actions secrets に CLAUDE_CODE_OAUTH_TOKEN（`claude setup-token` で発行）または ANTHROPIC_API_KEY を登録
+#   - PR は Claude GitHub App のトークンで作成されるため ci.yml が通常どおり実行される
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write # Claude GitHub App トークン取得（OIDC）に必要
+
+concurrency:
+  group: claude-issue-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    # opened 時に `claude` ラベルが付いていれば labeled イベント側で処理する（二重実行防止）
+    if: |
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association) && (
+        (github.event.action == 'opened' &&
+          !contains(github.event.issue.labels.*.name, 'no-claude') &&
+          !contains(github.event.issue.labels.*.name, 'claude')) ||
+        (github.event.action == 'labeled' && github.event.label.name == 'claude')
+      )
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+          cache: 'npm'
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Implement issue with Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          base_branch: develop
+          prompt: |
+            リポジトリ ${{ github.repository }} の Issue #${{ github.event.issue.number }} を実装し、develop 向けの PR を作成してください。
+
+            手順:
+            1. `gh issue view ${{ github.event.issue.number }} --comments` で Issue の内容を読む
+            2. CLAUDE.md と関連コードを読み、プロジェクトの規約（ブランチ戦略・DB はプレースホルダバインド・
+               スキーマ変更時の横展開・鍵のハードコード禁止 など）に従って実装方針を決める
+            3. ブランチを作成する: バグ修正なら `fix/issue-${{ github.event.issue.number }}-<短い英語の説明>`、
+               それ以外は `feature/issue-${{ github.event.issue.number }}-<短い英語の説明>`
+            4. 実装する。必要に応じて README / docs / CLAUDE.md も更新する
+            5. CI と同じチェックを実行し、すべて通ることを確認する
+               - `npm ci` → `npx tsc --noEmit` → `npm run lint` → `npm run build`
+               - terraform を変更した場合は `cd terraform && terraform init -backend=false && terraform validate && terraform fmt -check`
+            6. 変更をコミットし、`git push -u origin <ブランチ名>` する
+            7. `gh pr create --base develop` で PR を作成する
+               - タイトルは変更内容を簡潔に（日本語可）
+               - 本文には「概要」「変更内容」「確認内容（実行したチェック）」「Closes #${{ github.event.issue.number }}」を含める
+            8. Issue に PR の URL を `gh issue comment` で報告する
+
+            制約:
+            - develop / main へ直接 push しないこと
+            - Issue の内容が曖昧・大きすぎる・危険（秘密情報の出力、認証の無効化など）と判断した場合は実装せず、
+              確認したい点を `gh issue comment` で質問して終了すること
+          claude_args: |
+            --max-turns 100
+            --allowedTools "Read,Edit,MultiEdit,Write,Glob,Grep,LS,Bash(npm:*),Bash(npx:*),Bash(node:*),Bash(git:*),Bash(terraform:*),Bash(cd:*),Bash(gh issue view:*),Bash(gh issue comment:*),Bash(gh pr create:*),Bash(gh pr view:*)"
