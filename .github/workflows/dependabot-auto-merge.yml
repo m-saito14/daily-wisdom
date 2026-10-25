@@ -3,7 +3,7 @@ name: Dependabot Auto Merge
 # Dependabot の PR を、CI（ci.yml）が通過した時点でこのワークフロー自身がマージする。
 # GitHub ネイティブの auto-merge・ブランチ保護・PAT は不要。
 #
-#   1. label-major: PR 作成時に semver-major なら `needs-review` ラベルを付ける（自動マージ対象外）
+#   1. label-major: PR 作成時に semver-major または Terraform なら `needs-review` ラベルを付ける（自動マージ対象外）
 #   2. merge:       CI 成功（workflow_run）を受けて PR をマージし、deploy.yml を起動する
 #
 # GITHUB_TOKEN によるマージでは develop への push イベントで deploy.yml が起動しないため、
@@ -41,8 +41,10 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Label major update for manual review
-        if: steps.metadata.outputs.update-type == 'version-update:semver-major' && env.ALLOW_MAJOR != 'true'
+      # Terraform の requirement 更新（例: ~> 7.0 → ~> 8.8）は Dependabot が update-type を付与しないため
+      # major を判定できない。インフラに直結するので Terraform は常に手動レビューとする。
+      - name: Label major / terraform update for manual review
+        if: (steps.metadata.outputs.update-type == 'version-update:semver-major' && env.ALLOW_MAJOR != 'true') || steps.metadata.outputs.package-ecosystem == 'terraform'
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
