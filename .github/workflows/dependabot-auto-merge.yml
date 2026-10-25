@@ -74,7 +74,7 @@ jobs:
           PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          pr=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json state,author,labels)
+          pr=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json state,author,labels,mergeable)
           state=$(jq -r '.state' <<<"$pr")
           author=$(jq -r '.author.login' <<<"$pr")
           case "$author" in
@@ -91,16 +91,22 @@ jobs:
             echo "merged=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          # コンフリクトは Dependabot が自動でリベースする → CI 再実行 → 再度このジョブが走るため見送るだけにする
+          if [ "$(jq -r '.mergeable' <<<"$pr")" = "CONFLICTING" ]; then
+            echo "skip: develop とコンフリクトしているため Dependabot のリベースを待つ"
+            echo "merged=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           # --match-head-commit: CI を通過したコミットから HEAD が進んでいたらマージしない
           if gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --squash --delete-branch --match-head-commit "$HEAD_SHA"; then
             echo "merged=true" >> "$GITHUB_OUTPUT"
           else
-            # 例: .github/workflows を変更する PR は GITHUB_TOKEN ではマージできない
+            # 例: .github/workflows を変更する PR は GITHUB_TOKEN ではマージできない / ブランチ保護の条件を満たさない
             gh label create needs-review --repo "$GITHUB_REPOSITORY" --color d93f0b --description "人手のレビューが必要" 2>/dev/null || true
             gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label needs-review
             gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
-              --body "CI は通過しましたが自動マージに失敗しました（ワークフローファイルの変更・コンフリクト等）。手動でマージしてください。"
+              --body "CI は通過しましたが自動マージに失敗しました（ワークフローファイルの変更・ブランチ保護の条件未達等）。手動でマージしてください。"
             echo "merged=false" >> "$GITHUB_OUTPUT"
           fi
 
