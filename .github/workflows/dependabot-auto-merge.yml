@@ -1,0 +1,55 @@
+name: Dependabot Auto Merge
+
+# Dependabot の PR に GitHub ネイティブの auto-merge を設定する。
+# 実際のマージは「必須ステータスチェック（ci.yml）がすべて通過した時点」で GitHub が行う。
+# CI が落ちた場合はマージされず、dependabot-ci-autofix.yml が修正コミットを試みる。
+#
+# 前提（リポジトリ設定）:
+#   1. Settings > General > Pull Requests > "Allow auto-merge" を ON
+#   2. develop のブランチ保護（または Ruleset）で必須ステータスチェックに
+#      "lint-and-check" と "terraform-check" を指定
+#   3. (推奨) Dependabot secrets に AUTO_MERGE_TOKEN（Fine-grained PAT:
+#      Contents / Pull requests = Read and write）を登録。
+#      GITHUB_TOKEN でマージすると develop への push で deploy.yml が起動しないため。
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - develop
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  # semver-major も自動マージする場合は 'true' にする。
+  # develop へのマージ = 本番自動デプロイであり、自動テストも未導入のため既定では手動レビューとする。
+  ALLOW_MAJOR: 'false'
+
+jobs:
+  enable-auto-merge:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge (squash)
+        if: steps.metadata.outputs.update-type != 'version-update:semver-major' || env.ALLOW_MAJOR == 'true'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.AUTO_MERGE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: gh pr merge --auto --squash "$PR_URL"
+
+      - name: Label major update for manual review
+        if: steps.metadata.outputs.update-type == 'version-update:semver-major' && env.ALLOW_MAJOR != 'true'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create needs-review --color d93f0b --description "人手のレビューが必要" 2>/dev/null || true
+          gh pr edit "$PR_URL" --add-label needs-review
