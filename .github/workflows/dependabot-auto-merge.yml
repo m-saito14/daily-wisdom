@@ -3,7 +3,7 @@ name: Dependabot Auto Merge
 # Dependabot の PR を、CI（ci.yml）が通過した時点でこのワークフロー自身がマージする。
 # GitHub ネイティブの auto-merge・ブランチ保護・PAT は不要。
 #
-#   1. label-major: PR 作成時に semver-major または Terraform なら `needs-review` ラベルを付ける（自動マージ対象外）
+#   1. label-major: PR 作成時に semver-major・Terraform・major 判定できない直接依存なら `needs-review` を付ける（自動マージ対象外）
 #   2. merge:       CI 成功（workflow_run）を受けて PR をマージし、deploy.yml を起動する
 #
 # GITHUB_TOKEN によるマージでは develop への push イベントで deploy.yml が起動しないため、
@@ -41,14 +41,38 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Terraform の requirement 更新（例: ~> 7.0 → ~> 8.8）は Dependabot が update-type を付与しないため
-      # major を判定できない。インフラに直結するので Terraform は常に手動レビューとする。
+      # 自動マージ対象外（needs-review）にする条件。いずれかの依存が該当すれば対象外:
+      #   - semver-major（ALLOW_MAJOR=true なら許可）
+      #   - Terraform: requirement 更新（例: ~> 7.0 → ~> 8.8）は update-type が付かず major 判定できないため常に
+      #   - update-type なしの直接依存: セキュリティアップデートは update-type が付かないため、
+      #     バージョンから major 判定する（判定できなければ安全側で対象外）
       - name: Label major / terraform update for manual review
-        if: (steps.metadata.outputs.update-type == 'version-update:semver-major' && env.ALLOW_MAJOR != 'true') || steps.metadata.outputs.package-ecosystem == 'terraform'
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPS_JSON: ${{ steps.metadata.outputs.updated-dependencies-json }}
         run: |
+          # メタデータが取れなければ判定できないので安全側で対象外
+          if [ -z "$DEPS_JSON" ] || [ "$DEPS_JSON" = "[]" ]; then DEPS_JSON='[{"dependencyName":"(unknown)","dependencyType":"direct"}]'; fi
+          reasons=$(jq -r --arg allow_major "$ALLOW_MAJOR" '
+            # major 相当の番号（0.x は minor が破壊的変更の単位）
+            def major_key: (sub("^[^0-9]*"; "") | split(".")) as $p
+              | if ($p[0] // "") == "0" then "0." + ($p[1] // "") else ($p[0] // "") end;
+            .[] |
+            if .packageEcosystem == "terraform" then "\(.dependencyName): terraform"
+            elif .updateType == "version-update:semver-major" then
+              (if $allow_major == "true" then empty else "\(.dependencyName): semver-major" end)
+            elif ((.updateType // "") == "") and ((.dependencyType // "") | startswith("direct")) then
+              (if ((.prevVersion // "") == "") or ((.newVersion // "") == "") then "\(.dependencyName): バージョン不明の直接依存"
+               elif (.prevVersion | major_key) != (.newVersion | major_key) then "\(.dependencyName): \(.prevVersion) → \(.newVersion)"
+               else empty end)
+            else empty end
+          ' <<<"$DEPS_JSON")
+          if [ -z "$reasons" ]; then
+            echo "自動マージ対象"
+            exit 0
+          fi
+          echo "手動レビュー対象:"; echo "$reasons"
           gh label create needs-review --repo "$GITHUB_REPOSITORY" --color d93f0b --description "人手のレビューが必要" 2>/dev/null || true
           gh pr edit "$PR_URL" --add-label needs-review
 
