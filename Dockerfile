@@ -1,6 +1,6 @@
 # ビルドステージ: アプリケーションをビルド
 # ベースイメージとしてNode.jsの軽量バージョンを使用
-FROM node:24.22.1-slim AS builder
+FROM node:26.12.1-slim AS builder
 # アプリケーションの作業ディレクトリを設定
 WORKDIR /app
 
@@ -20,7 +20,7 @@ RUN npm run build
 
 
 # 実行ステージ: 軽量な実行環境を作成
-FROM node:24.22.1-slim AS runner
+FROM node:26.12.1-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
