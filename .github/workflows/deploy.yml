@@ -28,12 +28,12 @@ jobs:
     steps:
       # コードのチェックアウト
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # GCP認証 (WIF)
       - name: Authenticate to Google Cloud
         id: auth
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v3
         with:
           # terraform/outputs.tf で出力された WIF Provider のリソース名を指定
           workload_identity_provider: projects/644206843311/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider
@@ -46,11 +46,11 @@ jobs:
 
       # Docker Build, Tag, and Push
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         
       # WIF用の設定に変更
       - name: Docker Login to Artifact Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGION }}-docker.pkg.dev
           # JSONキーではなく、OAuthトークンとしてログイン
@@ -70,7 +70,7 @@ jobs:
       
       # Terraform Setup
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.5.0 # 使用しているバージョンに合わせる
 
