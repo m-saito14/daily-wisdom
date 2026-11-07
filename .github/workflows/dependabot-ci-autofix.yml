@@ -31,6 +31,10 @@ env:
   # 同一 PR に対する自動修正の上限回数（無限ループ防止）
   MAX_ATTEMPTS: 2
   COMMIT_MARKER: '[dependabot-autofix]'
+  # ci.yml の Build check と同じダミー値（Claude が `npm run build` を確認できるようにする）
+  AWS_REGION: us-east-1
+  GOOGLE_VERTEX_LOCATION: asia-northeast1
+  GOOGLE_VERTEX_PROJECT: gcp-learning-lab-476308
 
 jobs:
   autofix:
@@ -62,21 +66,21 @@ jobs:
 
       - name: Checkout PR branch
         if: steps.guard.outputs.skip == 'false'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
           fetch-depth: 0
 
       - name: Setup Node.js
         if: steps.guard.outputs.skip == 'false'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '24.22.1'
           cache: 'npm'
 
       - name: Setup Terraform
         if: steps.guard.outputs.skip == 'false'
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.5.0
 

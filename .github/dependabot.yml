@@ -26,13 +26,14 @@ updates:
         patterns:
           - "*"
     ignore:
-      # ai / Mastra / AI SDK は package.json の overrides で互換バージョンを固定している。
-      # major 更新は API 互換性が崩れるため手動で行う。
+      # ai / Mastra / AI SDK は package.json で完全一致・overrides により互換バージョンを固定している。
+      # （Mastra と AI SDK の互換性のため。minor 更新でも overrides と衝突する）更新は手動で行う。
       - dependency-name: "ai"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@ai-sdk/*"
-        update-types: ["version-update:semver-major"]
+      - dependency-name: "@ai-sdk/provider"
+      - dependency-name: "@ai-sdk/google-vertex"
       - dependency-name: "@mastra/*"
+      # それ以外の AI SDK（amazon-bedrock 等）は major のみ除外
+      - dependency-name: "@ai-sdk/*"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions

@@ -46,30 +46,24 @@ export default function Home() {
     const today = getTodayDate();
     const STORAGE_KEY = 'daily-wisdom-data';
 
-    const readCache = (): WisdomData | null => {
-      const savedData = localStorage.getItem(STORAGE_KEY);
-      if (!savedData) return null;
-      try {
-        const parsed: WisdomData = JSON.parse(savedData);
-        // 保存データの「日付」と「今日」が同じなら、APIを呼ばずにそれを使う
-        if (parsed.date === today) {
-          console.log("Using cached data from localStorage");
-          return parsed;
-        }
-      } catch (e) {
-        console.error("Storage parse error", e);
-        localStorage.removeItem(STORAGE_KEY);
-      }
-      return null;
-    };
-
-    const fetchData = async () => {
+    const loadData = async () => {
       // 1. まずローカルストレージを確認
-      const cached = readCache();
-      if (cached) {
-        setData(cached);
-        setLoading(false);
-        return; // ここで終了（APIは叩かない）
+      const savedData = localStorage.getItem(STORAGE_KEY);
+
+      if (savedData) {
+        try {
+          const parsed: WisdomData = JSON.parse(savedData);
+          // 保存データの「日付」と「今日」が同じなら、APIを呼ばずにそれを使う
+          if (parsed.date === today) {
+            console.log("Using cached data from localStorage");
+            setData(parsed);
+            setLoading(false);
+            return; // ここで終了（APIは叩かない）
+          }
+        } catch (e) {
+          console.error("Storage parse error", e);
+          localStorage.removeItem(STORAGE_KEY);
+        }
       }
 
       // 2. データがない、または日付が古い場合はAPIから取得
@@ -94,7 +88,7 @@ export default function Home() {
       }
     };
 
-    fetchData();
+    loadData();
   }, []);
 
   // --- UI操作ハンドラー ---
